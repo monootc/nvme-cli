@@ -811,3 +811,69 @@ static int get_internal_log(int argc, char **argv, struct command *command, stru
 	return err;
 
 }
+
+
+static int get_native_or_cur_LBA(int agrc, char **argv, struct command *cmd, struct plugin *plugin)
+{
+	const char *desc = "Get the native max LBA the device supports by using -n "\
+		"or -c to get the current LBA (in 512B units)\n";
+	const char *ns_id = "Identifier of desired namespace";
+	const char *cur = "Show current number of LBA in 512B units";
+	const char *native = "Show native max number of LBA the device supports in 512B units";
+
+	int err, fd;
+	__u32 result;
+	void *buff = NULL;
+
+	struct config{
+		__u32 ns_id;
+		__u32 fid;
+		__u8 sel;
+		__u32 data_len;
+		int cur;
+		int native;
+	};
+
+	struct config cfg = {
+		.ns_id = 1,
+		.fid = 0,
+		.sel = 0,
+		.data_len = 8,
+		cur = 0,
+		.native = 0
+	};
+
+	const struct argconfig_commandline_options command_line_options[] = {
+		{"namespace-id", 'n', "NUM", CFG_POSITIVE, &cfg.ns_id, required_argument, ns_id},
+		{"Current LBA", 'c', "", CFG_NONE, &cfg.cur, no_argument, cur},
+		{"Native Max LBA", 't', "", CFG_NONE, &cfg.native, no_argument, native},
+		{NULL}
+	};
+	if(posix_memalign(&buf, getpagesize(), cfg.data_len)){
+		fprintf(stderr, "Cannot allocate feature payload\n");
+		return ENOMEM;
+	}
+	memset(buf, 0 , cfg.data_len);
+
+	fd = parse_and_open(argc, argv, desc, command_line_options, &cfg, sizeof(cfg));
+	if(fd < 0)
+		return fd;
+
+	if(cfg.native)
+		cfg.fid = 0xc2;
+	else
+		cfg.fid = 0xc1;
+	
+	err = nvme_get_feature(fd, cfg.ns_id, cfg.fid, cfg.sel, 0, cfg.data_len, buff, &result);
+	long unsigned int total = *((unsigned int *)buf + 1);
+	total = *(unsigned int *)buf | total << 32;
+	if(!err && !result){
+		printf("intel unique feature id: %#02x\n", cfg.fid);
+		if(cfg.fid == 0xc1)
+			printf("Current LBA: %#016lx\n", total);
+		else
+			printf("Native max LBA: %#016lx\n", total);
+	}else{
+		fprintf(stderr, "NVMe Status:%s(%x)\n", nvme_status_to_string(err), err);
+	}
+}

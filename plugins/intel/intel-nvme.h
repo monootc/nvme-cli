@@ -14,6 +14,7 @@ PLUGIN(NAME("intel", "Intel vendor specific extensions"),
 		ENTRY("temp-stats", "Retrieve Intel Temperature Statistics log, show it", get_temp_stats_log)
 		ENTRY("lat-stats", "Retrieve Intel IO Latency Statistics log, show it", get_lat_stats_log)
 		ENTRY("internal-log", "Retrieve Intel internal firmware log, save it", get_internal_log)
+		ENTRY("show-lba", "Get the current LBA or the Native max LBA the device can support", get_native_or_cur_LBA)
 	)
 );
 
