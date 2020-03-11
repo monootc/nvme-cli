@@ -54,6 +54,7 @@ void usage(struct plugin *plugin)
 		printf("usage: %s %s %s\n", prog->name, plugin->name, prog->usage);
 	else
 		printf("usage: %s %s\n", prog->name, prog->usage);
+	return;
 }
 
 void general_help(struct plugin *plugin)
